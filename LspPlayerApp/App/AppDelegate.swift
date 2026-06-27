@@ -13,7 +13,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        do {
+            try DependencyContainer.shared.audioSessionService.active()
+        } catch {
+            print("Audio session activation failed: \(error)")
+        }
+
         return true
     }
 

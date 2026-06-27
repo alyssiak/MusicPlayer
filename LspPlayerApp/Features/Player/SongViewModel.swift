@@ -17,6 +17,7 @@ final class SongViewModel {
     private let tracks: [Track]
     private let audioPlayerService: AudioPlayerServiceProtocol
     private let playbackStateStore: PlaybackStateStoring
+    private let nowPlayingService: NowPlayingInfoUpdating
     private var currentIndex: Int
     private var timer: Timer?
     private var isTrackLoaded = false
@@ -28,23 +29,22 @@ final class SongViewModel {
         tracks[currentIndex]
     }
 
-    var volume: Float {
-        audioPlayerService.volume
-    }
-
     init(
         tracks: [Track],
         currentIndex: Int,
         audioPlayerService: AudioPlayerServiceProtocol,
-        playbackStateStore: PlaybackStateStoring
+        playbackStateStore: PlaybackStateStoring,
+        nowPlayingService: NowPlayingInfoUpdating
     ) {
         precondition(!tracks.isEmpty, "SongViewModel requires at least one track")
         self.tracks = tracks
         self.currentIndex = min(max(0, currentIndex), tracks.count - 1)
         self.audioPlayerService = audioPlayerService
         self.playbackStateStore = playbackStateStore
+        self.nowPlayingService = nowPlayingService
         self.audioPlayerService.delegate = self
         restorePlaybackState()
+        configureRemoteCommands()
     }
 
     deinit {
@@ -76,22 +76,21 @@ final class SongViewModel {
         writePlaybackState()
     }
 
-    func togglePlayback() {
-        if !isTrackLoaded {
-            loadCurrentTrack()
-        }
+    func pausePlayback() {
         guard isTrackLoaded else { return }
 
-        audioPlayerService.isPlaying
-            ? audioPlayerService.pause()
-            : audioPlayerService.play()
-        if audioPlayerService.isPlaying {
-            startTimer()
-        } else {
-            stopTimer()
-        }
+        audioPlayerService.pause()
+        stopTimer()
         notifyStateChanged()
         writePlaybackState()
+    }
+
+    func togglePlayback() {
+        if audioPlayerService.isPlaying {
+            pausePlayback()
+        } else {
+            startPlayback()
+        }
     }
 
     func playNext() {
@@ -121,11 +120,6 @@ final class SongViewModel {
     func seek(to time: TimeInterval) {
         audioPlayerService.seek(to: time)
         notifyStateChanged()
-        writePlaybackState()
-    }
-
-    func setVolume(_ volume: Float) {
-        audioPlayerService.volume = volume
         writePlaybackState()
     }
 
@@ -181,9 +175,7 @@ final class SongViewModel {
 
     private func loadCurrentTrack() {
         do {
-            let volume = audioPlayerService.volume
             try audioPlayerService.load(track: currentTrack)
-            audioPlayerService.volume = volume
             isTrackLoaded = true
             notifyStateChanged()
         } catch {
@@ -208,13 +200,22 @@ final class SongViewModel {
     }
 
     private func notifyStateChanged() {
-        state = SongPlayerState(
+        let newState = SongPlayerState(
             track: currentTrack,
             isPlaying: audioPlayerService.isPlaying,
             currentTime: audioPlayerService.currentTime,
             duration: audioPlayerService.duration,
             isRepeatEnabled: isRepeatEnabled,
             isShuffleEnabled: isShuffleEnabled
+        )
+
+        state = newState
+
+        nowPlayingService.update(
+            track: newState.track,
+            elapsedTime: newState.currentTime,
+            duration: newState.duration,
+            isPlaying: newState.isPlaying
         )
     }
 
@@ -233,7 +234,6 @@ final class SongViewModel {
         guard isTrackLoaded else { return }
 
         audioPlayerService.seek(to: snapshot.position)
-        audioPlayerService.volume = snapshot.volume
         lastPersistedPosition = audioPlayerService.currentTime
         notifyStateChanged()
     }
@@ -250,10 +250,29 @@ final class SongViewModel {
         let currentPosition = audioPlayerService.currentTime
         playbackStateStore.save(
             trackFileName: currentTrack.fileName,
-            position: currentPosition,
-            volume: audioPlayerService.volume
+            position: currentPosition
         )
         lastPersistedPosition = currentPosition
+    }
+
+    private func configureRemoteCommands() {
+        nowPlayingService.configureRemoteCommands(
+            onPlay: { [weak self] in
+                self?.startPlayback()
+            },
+            onPause: { [weak self] in
+                self?.pausePlayback()
+            },
+            onNext: { [weak self] in
+                self?.playNext()
+            },
+            onPrevious: { [weak self] in
+                self?.playPreviousTrack()
+            },
+            onSeek: { [weak self] position in
+                self?.seek(to: position)
+            }
+        )
     }
 }
 

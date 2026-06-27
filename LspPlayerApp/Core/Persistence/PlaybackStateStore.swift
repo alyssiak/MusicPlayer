@@ -3,19 +3,17 @@ import Foundation
 struct PlaybackSnapshot {
     let trackFileName: String
     let position: TimeInterval
-    let volume: Float
 }
 
 protocol PlaybackStateStoring {
     func load() -> PlaybackSnapshot?
-    func save(trackFileName: String, position: TimeInterval, volume: Float)
+    func save(trackFileName: String, position: TimeInterval)
 }
 
 struct UserDefaultsPlaybackStateStore: PlaybackStateStoring {
     private enum Key {
         static let trackFileName = "player.lastTrackFileName"
         static let position = "player.lastPosition"
-        static let volume = "player.volume"
     }
 
     private let userDefaults: UserDefaults
@@ -31,24 +29,17 @@ struct UserDefaultsPlaybackStateStore: PlaybackStateStoring {
             return nil
         }
 
-        let volume = userDefaults.object(forKey: Key.volume) == nil
-            ? 0.5
-            : userDefaults.float(forKey: Key.volume)
-
         return PlaybackSnapshot(
             trackFileName: trackFileName,
-            position: userDefaults.double(forKey: Key.position),
-            volume: volume
+            position: userDefaults.double(forKey: Key.position)
         )
     }
 
     func save(
         trackFileName: String,
-        position: TimeInterval,
-        volume: Float
+        position: TimeInterval
     ) {
         userDefaults.set(trackFileName, forKey: Key.trackFileName)
         userDefaults.set(position, forKey: Key.position)
-        userDefaults.set(volume, forKey: Key.volume)
     }
 }
