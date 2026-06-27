@@ -67,6 +67,28 @@ final class AlbumHeaderView: UIView {
         fatalError("AlbumHeaderView is created programmatically")
     }
 
+    func update(scrollOffset: CGFloat) {
+        if scrollOffset < 0 {
+            let stretch = min(abs(scrollOffset) / 500, 0.08)
+            artworkContainerView.transform = CGAffineTransform(
+                scaleX: 1 + stretch,
+                y: 1 + stretch
+            )
+            artworkContainerView.alpha = 1
+            descriptionCardView.alpha = 1
+            return
+        }
+
+        let progress = min(scrollOffset / 180, 1)
+        let scale = 1 - (progress * 0.18)
+        artworkContainerView.transform = CGAffineTransform(
+            scaleX: scale,
+            y: scale
+        )
+        artworkContainerView.alpha = 1 - (progress * 0.28)
+        descriptionCardView.alpha = 1 - (progress * 0.55)
+    }
+
     private func configureUI() {
         addSubview(artworkContainerView)
         artworkContainerView.addSubview(artworkImageView)

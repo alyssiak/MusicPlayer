@@ -6,6 +6,7 @@ final class SongViewController: UIViewController {
     private let viewModel: SongViewModel
     private var cancellables = Set<AnyCancellable>()
     private var isArtworkTransitioning = false
+    private var displayedTrackFileName: String?
 
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(named: "6"))
@@ -354,8 +355,7 @@ final class SongViewController: UIViewController {
     private func render(_ state: SongPlayerState) {
         titleLabel.text = state.track.title
         artistLabel.text = state.track.artist
-        artworkImageView.image = UIImage(named: state.track.coverName)
-        backgroundImageView.image = UIImage(named: state.track.coverName)
+        updateArtwork(for: state.track)
 
         let playSymbol = state.isPlaying ? "pause.fill" : "play.fill"
         playPauseButton.setImage(
@@ -377,6 +377,36 @@ final class SongViewController: UIViewController {
         currentTimeLabel.text = SongViewModel.formatTime(state.currentTime)
         let remainingTime = max(0, state.duration - state.currentTime)
         durationLabel.text = SongViewModel.formatTime(remainingTime)
+    }
+
+    private func updateArtwork(for track: Track) {
+        guard displayedTrackFileName != track.fileName else { return }
+
+        let image = UIImage(named: track.coverName)
+        let shouldAnimate = displayedTrackFileName != nil
+        displayedTrackFileName = track.fileName
+
+        guard shouldAnimate else {
+            artworkImageView.image = image
+            backgroundImageView.image = image
+            return
+        }
+
+        UIView.transition(
+            with: artworkImageView,
+            duration: 0.25,
+            options: [.transitionCrossDissolve, .beginFromCurrentState]
+        ) {
+            self.artworkImageView.image = image
+        }
+
+        UIView.transition(
+            with: backgroundImageView,
+            duration: 0.5,
+            options: [.transitionCrossDissolve, .beginFromCurrentState]
+        ) {
+            self.backgroundImageView.image = image
+        }
     }
 
     private func showError(_ message: String) {

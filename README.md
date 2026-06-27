@@ -18,6 +18,8 @@ The project uses MVVM with protocol-based dependencies:
 - next and previous track navigation;
 - shuffle and repeat modes;
 - persistent mini-player shared with the full player screen;
+- swipe navigation on artwork and mini-player;
+- restoration of the last track and playback position;
 - adaptive scrollable album layout;
 - share current track.
 
