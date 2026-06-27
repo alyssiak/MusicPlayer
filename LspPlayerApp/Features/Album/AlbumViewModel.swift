@@ -22,15 +22,4 @@ final class AlbumViewModel {
         return tracks[index]
     }
 
-    func makeSongViewModel(
-        selectedIndex: Int,
-        audioPlayerService: AudioPlayerServiceProtocol
-    ) -> SongViewModel? {
-        guard tracks.indices.contains(selectedIndex) else { return nil }
-        return SongViewModel(
-            tracks: tracks,
-            currentIndex: selectedIndex,
-            audioPlayerService: audioPlayerService
-        )
-    }
 }

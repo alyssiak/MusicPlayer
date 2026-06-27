@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 struct SongPlayerState {
@@ -10,18 +11,23 @@ struct SongPlayerState {
 }
 
 final class SongViewModel {
-    var onStateChange: ((SongPlayerState) -> Void)?
+    @Published private(set) var state: SongPlayerState?
     var onError: ((String) -> Void)?
 
     private let tracks: [Track]
     private let audioPlayerService: AudioPlayerServiceProtocol
     private var currentIndex: Int
     private var timer: Timer?
+    private var isTrackLoaded = false
     private var isRepeatEnabled = false
     private var isShuffleEnabled = false
 
     var currentTrack: Track {
         tracks[currentIndex]
+    }
+
+    var volume: Float {
+        audioPlayerService.volume
     }
 
     init(
@@ -41,10 +47,18 @@ final class SongViewModel {
     }
 
     func load() {
+        guard !isTrackLoaded else {
+            notifyStateChanged()
+            return
+        }
         loadCurrentTrack()
     }
 
     func startPlayback() {
+        if !isTrackLoaded {
+            loadCurrentTrack()
+        }
+        guard isTrackLoaded else { return }
         audioPlayerService.play()
         startTimer()
         notifyStateChanged()
@@ -57,9 +71,19 @@ final class SongViewModel {
     }
 
     func togglePlayback() {
+        if !isTrackLoaded {
+            loadCurrentTrack()
+        }
+        guard isTrackLoaded else { return }
+
         audioPlayerService.isPlaying
             ? audioPlayerService.pause()
             : audioPlayerService.play()
+        if audioPlayerService.isPlaying {
+            startTimer()
+        } else {
+            stopTimer()
+        }
         notifyStateChanged()
     }
 
@@ -110,6 +134,14 @@ final class SongViewModel {
         "\(currentTrack.title) — \(currentTrack.artist)"
     }
 
+    func selectTrack(at index: Int) {
+        guard tracks.indices.contains(index) else { return }
+
+        currentIndex = index
+        loadCurrentTrack()
+        startPlayback()
+    }
+
     static func formatTime(_ time: TimeInterval) -> String {
         guard time.isFinite else { return "00:00" }
         let totalSeconds = max(0, Int(time))
@@ -131,8 +163,10 @@ final class SongViewModel {
             let volume = audioPlayerService.volume
             try audioPlayerService.load(track: currentTrack)
             audioPlayerService.volume = volume
+            isTrackLoaded = true
             notifyStateChanged()
         } catch {
+            isTrackLoaded = false
             onError?(error.localizedDescription)
         }
     }
@@ -152,15 +186,13 @@ final class SongViewModel {
     }
 
     private func notifyStateChanged() {
-        onStateChange?(
-            SongPlayerState(
-                track: currentTrack,
-                isPlaying: audioPlayerService.isPlaying,
-                currentTime: audioPlayerService.currentTime,
-                duration: audioPlayerService.duration,
-                isRepeatEnabled: isRepeatEnabled,
-                isShuffleEnabled: isShuffleEnabled
-            )
+        state = SongPlayerState(
+            track: currentTrack,
+            isPlaying: audioPlayerService.isPlaying,
+            currentTime: audioPlayerService.currentTime,
+            duration: audioPlayerService.duration,
+            isRepeatEnabled: isRepeatEnabled,
+            isShuffleEnabled: isShuffleEnabled
         )
     }
 }

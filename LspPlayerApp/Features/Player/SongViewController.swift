@@ -1,8 +1,10 @@
+import Combine
 import SnapKit
 import UIKit
 
 final class SongViewController: UIViewController {
     private let viewModel: SongViewModel
+    private var cancellables = Set<AnyCancellable>()
 
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(named: "6"))
@@ -175,18 +177,7 @@ final class SongViewController: UIViewController {
         makeConstraints()
         bindViewModel()
 
-        viewModel.setVolume(volumeSlider.value)
-        viewModel.load()
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        viewModel.startPlayback()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        viewModel.stopPlayback()
+        volumeSlider.value = viewModel.volume
     }
 
     private func configureHierarchy() {
@@ -316,9 +307,13 @@ final class SongViewController: UIViewController {
     }
 
     private func bindViewModel() {
-        viewModel.onStateChange = { [weak self] state in
-            self?.render(state)
-        }
+        viewModel.$state
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.render(state)
+            }
+            .store(in: &cancellables)
 
         viewModel.onError = { [weak self] message in
             self?.showError(message)

@@ -1,3 +1,4 @@
+import Combine
 import SnapKit
 import UIKit
 
@@ -10,7 +11,9 @@ final class AlbumViewController: UIViewController {
     }
 
     private let viewModel: AlbumViewModel
-    private let audioPlayerService: AudioPlayerServiceProtocol
+    private let playerViewModel: SongViewModel
+    private var cancellables = Set<AnyCancellable>()
+    private var isMiniPlayerVisible = false
 
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(named: "6"))
@@ -88,25 +91,35 @@ final class AlbumViewController: UIViewController {
         return tableView
     }()
 
+    private let miniPlayerView: MiniPlayerView = {
+        let view = MiniPlayerView()
+        view.isHidden = true
+        view.alpha = 0
+        view.transform = CGAffineTransform(translationX: 0, y: 20)
+        return view
+    }()
+
     init(
         viewModel: AlbumViewModel,
-        audioPlayerService: AudioPlayerServiceProtocol
+        playerViewModel: SongViewModel
     ) {
         self.viewModel = viewModel
-        self.audioPlayerService = audioPlayerService
+        self.playerViewModel = playerViewModel
         super.init(nibName: nil, bundle: nil)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("Use init(viewModel:audioPlayerService:)")
+        fatalError("Use init(viewModel:playerViewModel:)")
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         configureHierarchy()
         configureTableView()
+        configureMiniPlayer()
         makeConstraints()
+        bindPlayer()
 
         viewModel.loadTracks()
         tableView.reloadData()
@@ -122,12 +135,27 @@ final class AlbumViewController: UIViewController {
         view.addSubview(artistLabel)
         view.addSubview(cardView)
         cardView.addSubview(tableView)
+        view.addSubview(miniPlayerView)
     }
 
     private func configureTableView() {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(TrackCell.self, forCellReuseIdentifier: TrackCell.reuseIdentifier)
+    }
+
+    private func configureMiniPlayer() {
+        miniPlayerView.onPlayPause = { [weak self] in
+            self?.playerViewModel.togglePlayback()
+        }
+
+        miniPlayerView.onNext = { [weak self] in
+            self?.playerViewModel.playNext()
+        }
+
+        miniPlayerView.onTap = { [weak self] in
+            self?.showPlayer()
+        }
     }
 
     private func makeConstraints() {
@@ -172,17 +200,46 @@ final class AlbumViewController: UIViewController {
         tableView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+
+        miniPlayerView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(12)
+            make.height.equalTo(72)
+        }
     }
 
-    private func showPlayer(for index: Int) {
-        guard let songViewModel = viewModel.makeSongViewModel(
-            selectedIndex: index,
-            audioPlayerService: audioPlayerService
-        ) else {
-            return
-        }
+    private func bindPlayer() {
+        playerViewModel.$state
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.renderMiniPlayer(state)
+            }
+            .store(in: &cancellables)
+    }
 
-        let songViewController = SongViewController(viewModel: songViewModel)
+    private func renderMiniPlayer(_ state: SongPlayerState) {
+        miniPlayerView.configure(with: state)
+        guard !isMiniPlayerVisible else { return }
+
+        isMiniPlayerVisible = true
+        miniPlayerView.isHidden = false
+        tableView.contentInset.bottom = 92
+        tableView.verticalScrollIndicatorInsets.bottom = 92
+
+        UIView.animate(
+            withDuration: 0.3,
+            delay: 0,
+            options: [.curveEaseOut]
+        ) {
+            self.miniPlayerView.alpha = 1
+            self.miniPlayerView.transform = .identity
+        }
+    }
+
+    private func showPlayer() {
+        guard playerViewModel.state != nil else { return }
+        let songViewController = SongViewController(viewModel: playerViewModel)
         songViewController.modalPresentationStyle = .pageSheet
         present(songViewController, animated: true)
     }
@@ -218,6 +275,7 @@ extension AlbumViewController: UITableViewDataSource {
 extension AlbumViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        showPlayer(for: indexPath.row)
+        playerViewModel.selectTrack(at: indexPath.row)
+        showPlayer()
     }
 }
