@@ -1,4 +1,5 @@
 import Combine
+import MediaPlayer
 import SnapKit
 import UIKit
 
@@ -144,26 +145,31 @@ final class SongViewController: UIViewController {
         return stackView
     }()
 
-    private let lowVolumeImageView =
-        SongViewController.makeImageView(systemName: "speaker.fill")
+    private let lowVolumeImageView: UIImageView = {
+        let imageView = SongViewController.makeImageView(
+            systemName: "speaker.fill"
+        )
+        imageView.transform = CGAffineTransform(
+            translationX: 0,
+            y: 2
+        )
+        return imageView
+    }()
+
     private let highVolumeImageView =
         SongViewController.makeImageView(systemName: "speaker.wave.2.fill")
 
-    private let volumeSlider: UISlider = {
-        let slider = UISlider()
-        slider.minimumValue = 0
-        slider.maximumValue = 1
-        slider.value = 0.5
-        slider.minimumTrackTintColor = .systemRed
-        slider.maximumTrackTintColor = .white.withAlphaComponent(0.25)
-        return slider
+    private let systemVolumeView: MPVolumeView = {
+        let volumeView = MPVolumeView()
+        volumeView.showsVolumeSlider = true
+        return volumeView
     }()
 
     private lazy var volumeStackView: UIStackView = {
         let stackView = UIStackView(
             arrangedSubviews: [
                 lowVolumeImageView,
-                volumeSlider,
+                systemVolumeView,
                 highVolumeImageView
             ]
         )
@@ -189,8 +195,6 @@ final class SongViewController: UIViewController {
         configureActions()
         makeConstraints()
         bindViewModel()
-
-        volumeSlider.value = viewModel.volume
     }
 
     private func configureHierarchy() {
@@ -217,11 +221,6 @@ final class SongViewController: UIViewController {
         progressSlider.addTarget(
             self,
             action: #selector(progressChanged),
-            for: .valueChanged
-        )
-        volumeSlider.addTarget(
-            self,
-            action: #selector(volumeChanged),
             for: .valueChanged
         )
         repeatButton.addTarget(self, action: #selector(repeatTapped), for: .touchUpInside)
@@ -271,7 +270,7 @@ final class SongViewController: UIViewController {
         }
 
         artworkContainerView.snp.makeConstraints { make in
-            make.top.equalTo(closeButton.snp.bottom).offset(10)
+            make.top.equalTo(closeButton.snp.bottom).offset(18)
             make.centerX.equalToSuperview()
             make.width.equalTo(330).priority(.high)
             make.width.lessThanOrEqualToSuperview().inset(24)
@@ -436,10 +435,6 @@ final class SongViewController: UIViewController {
         viewModel.seek(to: TimeInterval(sender.value))
     }
 
-    @objc private func volumeChanged(_ sender: UISlider) {
-        viewModel.setVolume(sender.value)
-    }
-
     @objc private func repeatTapped() {
         viewModel.toggleRepeat()
     }
@@ -526,8 +521,7 @@ final class SongViewController: UIViewController {
             systemName: systemName,
             pointSize: pointSize
         )
-        button.backgroundColor = .white.withAlphaComponent(0.09)
-        button.layer.cornerRadius = 20
+        button.backgroundColor = .clear
         return button
     }
 

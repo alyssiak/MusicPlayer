@@ -10,7 +10,6 @@ protocol AudioPlayerServiceProtocol: AnyObject {
     var isPlaying: Bool { get }
     var currentTime: TimeInterval { get }
     var duration: TimeInterval { get }
-    var volume: Float { get set }
 
     func load(track: Track) throws
     func play()
@@ -39,11 +38,6 @@ final class AudioPlayerService: NSObject, AudioPlayerServiceProtocol {
     var currentTime: TimeInterval { player?.currentTime ?? 0 }
     var duration: TimeInterval { player?.duration ?? 0 }
 
-    var volume: Float {
-        get { player?.volume ?? 1 }
-        set { player?.volume = newValue }
-    }
-
     func load(track: Track) throws {
         guard let url = Bundle.main.url(
             forResource: track.fileName,
@@ -54,6 +48,7 @@ final class AudioPlayerService: NSObject, AudioPlayerServiceProtocol {
 
         let player = try AVAudioPlayer(contentsOf: url)
         player.delegate = self
+        player.volume = 1
         player.prepareToPlay()
         self.player = player
     }
