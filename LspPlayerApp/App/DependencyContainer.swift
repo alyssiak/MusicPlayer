@@ -6,6 +6,12 @@ final class DependencyContainer {
     let trackRepository: TrackRepositoryProtocol
     let audioPlayerService: AudioPlayerServiceProtocol
 
+    lazy var playerViewModel = SongViewModel(
+        tracks: trackRepository.fetchTracks(),
+        currentIndex: 0,
+        audioPlayerService: audioPlayerService
+    )
+
     private init(
         trackRepository: TrackRepositoryProtocol = LocalTrackRepository(),
         audioPlayerService: AudioPlayerServiceProtocol = AudioPlayerService()

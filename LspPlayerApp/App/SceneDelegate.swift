@@ -25,7 +25,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         )
         let rootViewController = AlbumViewController(
             viewModel: albumViewModel,
-            audioPlayerService: dependencies.audioPlayerService
+            playerViewModel: dependencies.playerViewModel
         )
 
         let window = UIWindow(windowScene: windowScene)
