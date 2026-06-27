@@ -1,113 +1,223 @@
-//
-//  AlbumViewController.swift
-//  LspPlayer
-//
-//  Created by Alice Kamyshenko on 13.12.2025.
-//
-
+import SnapKit
 import UIKit
 
-class AlbumViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
+final class AlbumViewController: UIViewController {
+    private enum Layout {
+        static let horizontalInset: CGFloat = 46
+        static let artworkSize: CGFloat = 310
+        static let rowHeight: CGFloat = 60
+        static let cardHeight: CGFloat = rowHeight * 6 + 8
+    }
 
-    @IBOutlet weak var tableView: UITableView!
-    @IBOutlet weak var cardView: UIView!
-    @IBOutlet weak var imageView: UIImageView!
-    @IBOutlet weak var tableViewHeight: NSLayoutConstraint!
-    @IBOutlet weak var cardViewHeight: NSLayoutConstraint!
+    private let viewModel: AlbumViewModel
+    private let audioPlayerService: AudioPlayerServiceProtocol
 
-    private let dependencies = DependencyContainer.shared
-    private lazy var viewModel = AlbumViewModel(
-        repository: dependencies.trackRepository
+    private let backgroundImageView: UIImageView = {
+        let imageView = UIImageView(image: UIImage(named: "6"))
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        return imageView
+    }()
+
+    private let blurView = UIVisualEffectView(
+        effect: UIBlurEffect(style: .light)
     )
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    private let dimView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(
+            red: 0.12,
+            green: 0.143,
+            blue: 0.175,
+            alpha: 0.7
+        )
+        return view
+    }()
 
-        tableView.dataSource = self
-        tableView.delegate = self
-        viewModel.loadTracks()
+    private let artworkImageView: UIImageView = {
+        let imageView = UIImageView(image: UIImage(named: "6"))
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 22
+        return imageView
+    }()
 
-        cardView.layer.cornerRadius = 22
-        cardView.layer.masksToBounds = true
+    private let albumTitleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Судный день"
+        label.textAlignment = .center
+        label.textColor = .white
+        label.font = UIFont(name: "GillSans-SemiBold", size: 32)
+            ?? .systemFont(ofSize: 32, weight: .semibold)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.8
+        return label
+    }()
 
+    private let artistLabel: UILabel = {
+        let label = UILabel()
+        label.text = "ЛСП"
+        label.textAlignment = .center
+        label.textColor = .systemGray5
+        label.font = UIFont(name: "GillSans-Italic", size: 25)
+            ?? .italicSystemFont(ofSize: 25)
+        return label
+    }()
+
+    private let cardView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(
+            red: 0.09,
+            green: 0.096,
+            blue: 0.148,
+            alpha: 0.25
+        )
+        view.layer.cornerRadius = 22
+        view.clipsToBounds = true
+        return view
+    }()
+
+    private let tableView: UITableView = {
+        let tableView = UITableView(frame: .zero, style: .plain)
         tableView.backgroundColor = .clear
-        tableView.rowHeight = 60
-        tableView.alwaysBounceVertical = false
+        tableView.separatorStyle = .none
+        tableView.rowHeight = Layout.rowHeight
         tableView.showsVerticalScrollIndicator = true
         tableView.contentInset.bottom = 8
         tableView.verticalScrollIndicatorInsets.bottom = 8
+        return tableView
+    }()
 
-        imageView.layer.cornerRadius = 22
-
-
+    init(
+        viewModel: AlbumViewModel,
+        audioPlayerService: AudioPlayerServiceProtocol
+    ) {
+        self.viewModel = viewModel
+        self.audioPlayerService = audioPlayerService
+        super.init(nibName: nil, bundle: nil)
     }
 
-
-
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        viewModel.numberOfTracks
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("Use init(viewModel:audioPlayerService:)")
     }
 
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureHierarchy()
+        configureTableView()
+        makeConstraints()
 
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: "TrackCell",
-            for: indexPath
-        ) as? TrackCell else {
-            assertionFailure("TrackCell is not configured correctly")
-            return UITableViewCell()
-        }
-
-        guard let track = viewModel.track(at: indexPath.row) else {
-            return cell
-        }
-
-        cell.titleLabel.text = track.title
-        cell.artistLabel.text = track.artist
-        cell.coverImageView.image = UIImage(named: track.coverName)
-
-        return cell
+        viewModel.loadTracks()
+        tableView.reloadData()
     }
 
-    // вызывается когда пользователь тапает по ячейке
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+    private func configureHierarchy() {
+        view.backgroundColor = .systemBackground
+        view.addSubview(backgroundImageView)
+        view.addSubview(blurView)
+        view.addSubview(dimView)
+        view.addSubview(artworkImageView)
+        view.addSubview(albumTitleLabel)
+        view.addSubview(artistLabel)
+        view.addSubview(cardView)
+        cardView.addSubview(tableView)
+    }
 
-        guard let songVC = storyboard.instantiateViewController(
-            withIdentifier: "SongViewController"
-        ) as? SongViewController else {
-            assertionFailure("SongViewController is not configured in Main.storyboard")
-            return
+    private func configureTableView() {
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.register(TrackCell.self, forCellReuseIdentifier: TrackCell.reuseIdentifier)
+    }
+
+    private func makeConstraints() {
+        backgroundImageView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
 
+        blurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        dimView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+
+        artworkImageView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(16)
+            make.centerX.equalToSuperview()
+            make.width.equalTo(Layout.artworkSize).priority(.high)
+            make.width.lessThanOrEqualToSuperview().inset(32)
+            make.height.equalTo(artworkImageView.snp.width)
+            make.height.lessThanOrEqualTo(view.snp.height).multipliedBy(0.38)
+        }
+
+        albumTitleLabel.snp.makeConstraints { make in
+            make.top.equalTo(artworkImageView.snp.bottom).offset(12)
+            make.leading.trailing.equalToSuperview().inset(32)
+        }
+
+        artistLabel.snp.makeConstraints { make in
+            make.top.equalTo(albumTitleLabel.snp.bottom).offset(2)
+            make.centerX.equalToSuperview()
+        }
+
+        cardView.snp.makeConstraints { make in
+            make.top.equalTo(artistLabel.snp.bottom).offset(20)
+            make.leading.trailing.equalToSuperview().inset(Layout.horizontalInset)
+            make.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).inset(12)
+            make.height.equalTo(Layout.cardHeight).priority(.high)
+        }
+
+        tableView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+    }
+
+    private func showPlayer(for index: Int) {
         guard let songViewModel = viewModel.makeSongViewModel(
-            selectedIndex: indexPath.row,
-            audioPlayerService: dependencies.audioPlayerService
+            selectedIndex: index,
+            audioPlayerService: audioPlayerService
         ) else {
             return
         }
-        songVC.viewModel = songViewModel
 
-        songVC.modalPresentationStyle = .pageSheet
-        present(songVC, animated: true)
+        let songViewController = SongViewController(viewModel: songViewModel)
+        songViewController.modalPresentationStyle = .pageSheet
+        present(songViewController, animated: true)
+    }
+}
+
+extension AlbumViewController: UITableViewDataSource {
+    func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+    ) -> Int {
+        viewModel.numberOfTracks
     }
 
+    func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
+        guard
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: TrackCell.reuseIdentifier,
+                for: indexPath
+            ) as? TrackCell,
+            let track = viewModel.track(at: indexPath.row)
+        else {
+            return UITableViewCell()
+        }
 
-    // вызывается после того, как Auto Layout расставил все view
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
+        cell.configure(with: track)
+        return cell
+    }
+}
 
-        // Таблица занимает всё свободное место до safe area.
-        // Если треки не помещаются, список становится прокручиваемым.
-        tableView.layoutIfNeeded()
-
-        let contentHeight = tableView.contentSize.height + tableView.contentInset.bottom
-        let safeAreaBottom = view.bounds.height - view.safeAreaInsets.bottom
-        let availableHeight = max(0, safeAreaBottom - cardView.frame.minY - 12)
-        let visibleHeight = min(contentHeight, availableHeight)
-
-        tableViewHeight.constant = visibleHeight
-        cardViewHeight.constant = visibleHeight
-        tableView.isScrollEnabled = contentHeight > availableHeight
+extension AlbumViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        showPlayer(for: indexPath.row)
     }
 }

@@ -19,11 +19,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        let storyboard = UIStoryboard(name: "Main", bundle: .main)
-        guard let rootViewController = storyboard.instantiateInitialViewController() else {
-            assertionFailure("Main.storyboard has no initial view controller")
-            return
-        }
+        let dependencies = DependencyContainer.shared
+        let albumViewModel = AlbumViewModel(
+            repository: dependencies.trackRepository
+        )
+        let rootViewController = AlbumViewController(
+            viewModel: albumViewModel,
+            audioPlayerService: dependencies.audioPlayerService
+        )
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = rootViewController

@@ -23,7 +23,7 @@ The project uses MVVM with protocol-based dependencies:
 ## Tech stack
 
 - Swift 5
-- UIKit and Storyboard
+- UIKit and SnapKit
 - AVFoundation
 - MVVM
 - Dependency injection
