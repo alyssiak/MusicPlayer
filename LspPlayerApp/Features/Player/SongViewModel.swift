@@ -16,11 +16,13 @@ final class SongViewModel {
 
     private let tracks: [Track]
     private let audioPlayerService: AudioPlayerServiceProtocol
+    private let playbackStateStore: PlaybackStateStoring
     private var currentIndex: Int
     private var timer: Timer?
     private var isTrackLoaded = false
     private var isRepeatEnabled = false
     private var isShuffleEnabled = false
+    private var lastPersistedPosition: TimeInterval = 0
 
     var currentTrack: Track {
         tracks[currentIndex]
@@ -33,13 +35,16 @@ final class SongViewModel {
     init(
         tracks: [Track],
         currentIndex: Int,
-        audioPlayerService: AudioPlayerServiceProtocol
+        audioPlayerService: AudioPlayerServiceProtocol,
+        playbackStateStore: PlaybackStateStoring
     ) {
         precondition(!tracks.isEmpty, "SongViewModel requires at least one track")
         self.tracks = tracks
         self.currentIndex = min(max(0, currentIndex), tracks.count - 1)
         self.audioPlayerService = audioPlayerService
+        self.playbackStateStore = playbackStateStore
         self.audioPlayerService.delegate = self
+        restorePlaybackState()
     }
 
     deinit {
@@ -68,6 +73,7 @@ final class SongViewModel {
         audioPlayerService.stop()
         stopTimer()
         notifyStateChanged()
+        writePlaybackState()
     }
 
     func togglePlayback() {
@@ -85,6 +91,7 @@ final class SongViewModel {
             stopTimer()
         }
         notifyStateChanged()
+        writePlaybackState()
     }
 
     func playNext() {
@@ -114,10 +121,12 @@ final class SongViewModel {
     func seek(to time: TimeInterval) {
         audioPlayerService.seek(to: time)
         notifyStateChanged()
+        writePlaybackState()
     }
 
     func setVolume(_ volume: Float) {
         audioPlayerService.volume = volume
+        writePlaybackState()
     }
 
     @discardableResult
@@ -144,6 +153,11 @@ final class SongViewModel {
         currentIndex = index
         loadCurrentTrack()
         startPlayback()
+        writePlaybackState()
+    }
+
+    func savePlaybackState() {
+        writePlaybackState()
     }
 
     static func formatTime(_ time: TimeInterval) -> String {
@@ -158,8 +172,11 @@ final class SongViewModel {
 
     private func loadAndPlayCurrentTrack() {
         loadCurrentTrack()
+        guard isTrackLoaded else { return }
         audioPlayerService.play()
+        startTimer()
         notifyStateChanged()
+        writePlaybackState()
     }
 
     private func loadCurrentTrack() {
@@ -179,6 +196,7 @@ final class SongViewModel {
         stopTimer()
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             self?.notifyStateChanged()
+            self?.persistPlaybackStateIfNeeded()
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
@@ -198,6 +216,44 @@ final class SongViewModel {
             isRepeatEnabled: isRepeatEnabled,
             isShuffleEnabled: isShuffleEnabled
         )
+    }
+
+    private func restorePlaybackState() {
+        guard
+            let snapshot = playbackStateStore.load(),
+            let restoredIndex = tracks.firstIndex(where: {
+                $0.fileName == snapshot.trackFileName
+            })
+        else {
+            return
+        }
+
+        currentIndex = restoredIndex
+        loadCurrentTrack()
+        guard isTrackLoaded else { return }
+
+        audioPlayerService.seek(to: snapshot.position)
+        audioPlayerService.volume = snapshot.volume
+        lastPersistedPosition = audioPlayerService.currentTime
+        notifyStateChanged()
+    }
+
+    private func persistPlaybackStateIfNeeded() {
+        let currentPosition = audioPlayerService.currentTime
+        guard abs(currentPosition - lastPersistedPosition) >= 5 else { return }
+        writePlaybackState()
+    }
+
+    private func writePlaybackState() {
+        guard isTrackLoaded else { return }
+
+        let currentPosition = audioPlayerService.currentTime
+        playbackStateStore.save(
+            trackFileName: currentTrack.fileName,
+            position: currentPosition,
+            volume: audioPlayerService.volume
+        )
+        lastPersistedPosition = currentPosition
     }
 }
 

@@ -13,6 +13,7 @@ final class AlbumViewController: UIViewController {
     private let playerViewModel: SongViewModel
     private var cancellables = Set<AnyCancellable>()
     private var isMiniPlayerVisible = false
+    private var displayedBackgroundTrackFileName: String?
     private var tableBottomConstraint: Constraint?
     private var tableBottomToMiniPlayerConstraint: Constraint?
 
@@ -120,6 +121,10 @@ final class AlbumViewController: UIViewController {
             self?.playerViewModel.playNext()
         }
 
+        miniPlayerView.onPrevious = { [weak self] in
+            self?.playerViewModel.playPreviousTrack()
+        }
+
         miniPlayerView.onTap = { [weak self] in
             self?.showPlayer()
         }
@@ -194,6 +199,7 @@ final class AlbumViewController: UIViewController {
 
     private func renderMiniPlayer(_ state: SongPlayerState) {
         miniPlayerView.configure(with: state)
+        updateBackground(for: state.track)
         updatePlayingTrack(state.track)
         guard !isMiniPlayerVisible else { return }
 
@@ -216,6 +222,26 @@ final class AlbumViewController: UIViewController {
     private func updatePlayingTrack(_ track: Track) {
         for case let cell as TrackCell in tableView.visibleCells {
             cell.setPlaying(cell.trackFileName == track.fileName)
+        }
+    }
+
+    private func updateBackground(for track: Track) {
+        guard displayedBackgroundTrackFileName != track.fileName else { return }
+        let image = UIImage(named: track.coverName)
+        let shouldAnimate = displayedBackgroundTrackFileName != nil
+        displayedBackgroundTrackFileName = track.fileName
+
+        guard shouldAnimate else {
+            backgroundImageView.image = image
+            return
+        }
+
+        UIView.transition(
+            with: backgroundImageView,
+            duration: 0.45,
+            options: [.transitionCrossDissolve, .beginFromCurrentState]
+        ) {
+            self.backgroundImageView.image = image
         }
     }
 
@@ -258,6 +284,12 @@ extension AlbumViewController: UITableViewDataSource {
 }
 
 extension AlbumViewController: UITableViewDelegate {
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let scrollOffset = scrollView.contentOffset.y
+            + scrollView.adjustedContentInset.top
+        albumHeaderView.update(scrollOffset: scrollOffset)
+    }
+
     func tableView(
         _ tableView: UITableView,
         viewForHeaderInSection section: Int

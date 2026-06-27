@@ -4,7 +4,10 @@ import UIKit
 final class MiniPlayerView: UIView {
     var onPlayPause: (() -> Void)?
     var onNext: (() -> Void)?
+    var onPrevious: (() -> Void)?
     var onTap: (() -> Void)?
+    private var displayedTrackFileName: String?
+    private var isSwipeAnimating = false
 
     private let blurView = UIVisualEffectView(
         effect: UIBlurEffect(style: .systemUltraThinMaterialDark)
@@ -82,9 +85,27 @@ final class MiniPlayerView: UIView {
     }
 
     func configure(with state: SongPlayerState) {
-        artworkImageView.image = UIImage(named: state.track.coverName)
-        titleLabel.text = state.track.title
-        artistLabel.text = state.track.artist
+        if displayedTrackFileName != state.track.fileName {
+            let shouldAnimate = displayedTrackFileName != nil
+            displayedTrackFileName = state.track.fileName
+
+            let updates = {
+                self.artworkImageView.image = UIImage(named: state.track.coverName)
+                self.titleLabel.text = state.track.title
+                self.artistLabel.text = state.track.artist
+            }
+
+            if shouldAnimate {
+                UIView.transition(
+                    with: self,
+                    duration: 0.25,
+                    options: [.transitionCrossDissolve, .beginFromCurrentState],
+                    animations: updates
+                )
+            } else {
+                updates()
+            }
+        }
 
         let symbolName = state.isPlaying ? "pause.fill" : "play.fill"
         playPauseButton.setImage(
@@ -122,6 +143,20 @@ final class MiniPlayerView: UIView {
             for: .touchUpInside
         )
         nextButton.addTarget(self, action: #selector(nextTapped), for: .touchUpInside)
+
+        let swipeLeft = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(playerSwiped)
+        )
+        swipeLeft.direction = .left
+        addGestureRecognizer(swipeLeft)
+
+        let swipeRight = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(playerSwiped)
+        )
+        swipeRight.direction = .right
+        addGestureRecognizer(swipeRight)
     }
 
     private func makeConstraints() {
@@ -173,5 +208,57 @@ final class MiniPlayerView: UIView {
 
     @objc private func nextTapped() {
         onNext?()
+    }
+
+    @objc private func playerSwiped(_ gesture: UISwipeGestureRecognizer) {
+        guard !isSwipeAnimating else { return }
+        isSwipeAnimating = true
+
+        let isNext = gesture.direction == .left
+        let exitOffset: CGFloat = isNext ? -24 : 24
+        let entryOffset = -exitOffset
+        let animatedViews = [artworkImageView, labelsStackView]
+
+        UIView.animate(
+            withDuration: 0.12,
+            animations: {
+                animatedViews.forEach {
+                    $0.transform = CGAffineTransform(
+                        translationX: exitOffset,
+                        y: 0
+                    )
+                    $0.alpha = 0
+                }
+            },
+            completion: { _ in
+                if isNext {
+                    self.onNext?()
+                } else {
+                    self.onPrevious?()
+                }
+
+                animatedViews.forEach {
+                    $0.transform = CGAffineTransform(
+                        translationX: entryOffset,
+                        y: 0
+                    )
+                }
+
+                UIView.animate(
+                    withDuration: 0.18,
+                    delay: 0,
+                    options: [.curveEaseOut],
+                    animations: {
+                        animatedViews.forEach {
+                            $0.transform = .identity
+                            $0.alpha = 1
+                        }
+                    },
+                    completion: { _ in
+                        self.isSwipeAnimating = false
+                    }
+                )
+            }
+        )
     }
 }
