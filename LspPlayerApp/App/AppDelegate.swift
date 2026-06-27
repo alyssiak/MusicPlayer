@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  UISlider
+//  LspPlayer
 //
 //  Created by Alice Kamyshenko on 13.12.2025.
 //
@@ -33,4 +33,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 }
-

@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Xcode user data and build output
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+
+# Local audio is not published with the source code
+LspPlayerApp/Music/*.mp3

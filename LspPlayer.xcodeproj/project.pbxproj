@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F66323062EED931B0000A6F9 /* UISlider.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UISlider.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6BED2472F7587260006E253 /* LspPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LspPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F66323182EED931B0000A6F9 /* Exceptions for "UISlider" folder in "UISlider" target */ = {
+		F66323182EED931B0000A6F9 /* Exceptions for "LspPlayerApp" folder in "LspPlayer" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = F66323052EED931B0000A6F9 /* UISlider */;
+			target = F66323052EED931B0000A6F9 /* LspPlayer */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F66323082EED931B0000A6F9 /* UISlider */ = {
+		F66323082EED931B0000A6F9 /* LspPlayerApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F66323182EED931B0000A6F9 /* Exceptions for "UISlider" folder in "UISlider" target */,
+				F66323182EED931B0000A6F9 /* Exceptions for "LspPlayerApp" folder in "LspPlayer" target */,
 			);
-			path = UISlider;
+			path = LspPlayerApp;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,25 +45,17 @@
 		F66322FD2EED931A0000A6F9 = {
 			isa = PBXGroup;
 			children = (
-				F66323082EED931B0000A6F9 /* UISlider */,
-				F66323072EED931B0000A6F9 /* Products */,
+				F66323082EED931B0000A6F9 /* LspPlayerApp */,
+				F6BED2472F7587260006E253 /* LspPlayer.app */,
 			);
-			sourceTree = "<group>";
-		};
-		F66323072EED931B0000A6F9 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				F66323062EED931B0000A6F9 /* UISlider.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F66323052EED931B0000A6F9 /* UISlider */ = {
+		F66323052EED931B0000A6F9 /* LspPlayer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F66323192EED931B0000A6F9 /* Build configuration list for PBXNativeTarget "UISlider" */;
+			buildConfigurationList = F66323192EED931B0000A6F9 /* Build configuration list for PBXNativeTarget "LspPlayer" */;
 			buildPhases = (
 				F66323022EED931B0000A6F9 /* Sources */,
 				F66323032EED931B0000A6F9 /* Frameworks */,
@@ -74,13 +66,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F66323082EED931B0000A6F9 /* UISlider */,
+				F66323082EED931B0000A6F9 /* LspPlayerApp */,
 			);
-			name = UISlider;
+			name = LspPlayer;
 			packageProductDependencies = (
 			);
 			productName = UISlider;
-			productReference = F66323062EED931B0000A6F9 /* UISlider.app */;
+			productReference = F6BED2472F7587260006E253 /* LspPlayer.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -98,7 +90,7 @@
 					};
 				};
 			};
-			buildConfigurationList = F66323012EED931A0000A6F9 /* Build configuration list for PBXProject "UISlider" */;
+			buildConfigurationList = F66323012EED931A0000A6F9 /* Build configuration list for PBXProject "LspPlayer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -108,11 +100,11 @@
 			mainGroup = F66322FD2EED931A0000A6F9;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = F66323072EED931B0000A6F9 /* Products */;
+			productRefGroup = F66322FD2EED931A0000A6F9;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F66323052EED931B0000A6F9 /* UISlider */,
+				F66323052EED931B0000A6F9 /* LspPlayer */,
 			);
 		};
 /* End PBXProject section */
@@ -147,10 +139,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZZS9S7F6CF;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = UISlider/Info.plist;
+				INFOPLIST_FILE = LspPlayerApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -175,10 +166,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZZS9S7F6CF;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = UISlider/Info.plist;
+				INFOPLIST_FILE = LspPlayerApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
-				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -318,7 +308,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F66323012EED931A0000A6F9 /* Build configuration list for PBXProject "UISlider" */ = {
+		F66323012EED931A0000A6F9 /* Build configuration list for PBXProject "LspPlayer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F663231C2EED931B0000A6F9 /* Debug */,
@@ -327,7 +317,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F66323192EED931B0000A6F9 /* Build configuration list for PBXNativeTarget "UISlider" */ = {
+		F66323192EED931B0000A6F9 /* Build configuration list for PBXNativeTarget "LspPlayer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F663231A2EED931B0000A6F9 /* Debug */,
