@@ -103,6 +103,10 @@ final class SongViewModel {
             return
         }
 
+        playPreviousTrack()
+    }
+
+    func playPreviousTrack() {
         currentIndex = currentIndex == 0 ? tracks.count - 1 : currentIndex - 1
         loadAndPlayCurrentTrack()
     }

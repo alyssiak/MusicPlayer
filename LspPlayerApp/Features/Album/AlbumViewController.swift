@@ -4,16 +4,17 @@ import UIKit
 
 final class AlbumViewController: UIViewController {
     private enum Layout {
-        static let horizontalInset: CGFloat = 46
-        static let artworkSize: CGFloat = 310
-        static let rowHeight: CGFloat = 60
-        static let cardHeight: CGFloat = rowHeight * 6 + 8
+        static let rowHeight: CGFloat = 76
+        static let miniPlayerHeight: CGFloat = 68
+        static let miniPlayerSpacing: CGFloat = 8
     }
 
     private let viewModel: AlbumViewModel
     private let playerViewModel: SongViewModel
     private var cancellables = Set<AnyCancellable>()
     private var isMiniPlayerVisible = false
+    private var tableBottomConstraint: Constraint?
+    private var tableBottomToMiniPlayerConstraint: Constraint?
 
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(named: "6"))
@@ -23,62 +24,11 @@ final class AlbumViewController: UIViewController {
     }()
 
     private let blurView = UIVisualEffectView(
-        effect: UIBlurEffect(style: .light)
+        effect: UIBlurEffect(style: .systemUltraThinMaterialDark)
     )
 
-    private let dimView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(
-            red: 0.12,
-            green: 0.143,
-            blue: 0.175,
-            alpha: 0.7
-        )
-        return view
-    }()
-
-    private let artworkImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "6"))
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 22
-        return imageView
-    }()
-
-    private let albumTitleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Судный день"
-        label.textAlignment = .center
-        label.textColor = .white
-        label.font = UIFont(name: "GillSans-SemiBold", size: 32)
-            ?? .systemFont(ofSize: 32, weight: .semibold)
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.8
-        return label
-    }()
-
-    private let artistLabel: UILabel = {
-        let label = UILabel()
-        label.text = "ЛСП"
-        label.textAlignment = .center
-        label.textColor = .systemGray5
-        label.font = UIFont(name: "GillSans-Italic", size: 25)
-            ?? .italicSystemFont(ofSize: 25)
-        return label
-    }()
-
-    private let cardView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(
-            red: 0.09,
-            green: 0.096,
-            blue: 0.148,
-            alpha: 0.25
-        )
-        view.layer.cornerRadius = 22
-        view.clipsToBounds = true
-        return view
-    }()
+    private let gradientView = GradientView()
+    private let albumHeaderView = AlbumHeaderView()
 
     private let tableView: UITableView = {
         let tableView = UITableView(frame: .zero, style: .plain)
@@ -86,8 +36,11 @@ final class AlbumViewController: UIViewController {
         tableView.separatorStyle = .none
         tableView.rowHeight = Layout.rowHeight
         tableView.showsVerticalScrollIndicator = true
-        tableView.contentInset.bottom = 8
-        tableView.verticalScrollIndicatorInsets.bottom = 8
+        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 12, right: 0)
+        tableView.verticalScrollIndicatorInsets.bottom = 12
+        tableView.contentInsetAdjustmentBehavior = .always
+        tableView.sectionHeaderHeight = 46
+        tableView.sectionHeaderTopPadding = 0
         return tableView
     }()
 
@@ -95,7 +48,7 @@ final class AlbumViewController: UIViewController {
         let view = MiniPlayerView()
         view.isHidden = true
         view.alpha = 0
-        view.transform = CGAffineTransform(translationX: 0, y: 20)
+        view.transform = CGAffineTransform(translationX: 0, y: 18)
         return view
     }()
 
@@ -113,6 +66,10 @@ final class AlbumViewController: UIViewController {
         fatalError("Use init(viewModel:playerViewModel:)")
     }
 
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        .lightContent
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         configureHierarchy()
@@ -125,23 +82,33 @@ final class AlbumViewController: UIViewController {
         tableView.reloadData()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateHeaderSize()
+    }
+
     private func configureHierarchy() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = UIColor(
+            red: 0.055,
+            green: 0.064,
+            blue: 0.082,
+            alpha: 1
+        )
         view.addSubview(backgroundImageView)
         view.addSubview(blurView)
-        view.addSubview(dimView)
-        view.addSubview(artworkImageView)
-        view.addSubview(albumTitleLabel)
-        view.addSubview(artistLabel)
-        view.addSubview(cardView)
-        cardView.addSubview(tableView)
+        view.addSubview(gradientView)
+        view.addSubview(tableView)
         view.addSubview(miniPlayerView)
     }
 
     private func configureTableView() {
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.register(TrackCell.self, forCellReuseIdentifier: TrackCell.reuseIdentifier)
+        tableView.tableHeaderView = albumHeaderView
+        tableView.register(
+            TrackCell.self,
+            forCellReuseIdentifier: TrackCell.reuseIdentifier
+        )
     }
 
     private func configureMiniPlayer() {
@@ -167,45 +134,52 @@ final class AlbumViewController: UIViewController {
             make.edges.equalToSuperview()
         }
 
-        dimView.snp.makeConstraints { make in
+        gradientView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
-        }
-
-        artworkImageView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(16)
-            make.centerX.equalToSuperview()
-            make.width.equalTo(Layout.artworkSize).priority(.high)
-            make.width.lessThanOrEqualToSuperview().inset(32)
-            make.height.equalTo(artworkImageView.snp.width)
-            make.height.lessThanOrEqualTo(view.snp.height).multipliedBy(0.38)
-        }
-
-        albumTitleLabel.snp.makeConstraints { make in
-            make.top.equalTo(artworkImageView.snp.bottom).offset(12)
-            make.leading.trailing.equalToSuperview().inset(32)
-        }
-
-        artistLabel.snp.makeConstraints { make in
-            make.top.equalTo(albumTitleLabel.snp.bottom).offset(2)
-            make.centerX.equalToSuperview()
-        }
-
-        cardView.snp.makeConstraints { make in
-            make.top.equalTo(artistLabel.snp.bottom).offset(20)
-            make.leading.trailing.equalToSuperview().inset(Layout.horizontalInset)
-            make.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).inset(12)
-            make.height.equalTo(Layout.cardHeight).priority(.high)
         }
 
         tableView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.top.leading.trailing.equalToSuperview()
+            tableBottomConstraint = make.bottom
+                .equalTo(view.safeAreaLayoutGuide)
+                .constraint
         }
 
         miniPlayerView.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(12)
-            make.height.equalTo(72)
+            make.leading.trailing.equalToSuperview().inset(12)
+            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(8)
+            make.height.equalTo(Layout.miniPlayerHeight)
         }
+
+        tableView.snp.makeConstraints { make in
+            tableBottomToMiniPlayerConstraint = make.bottom
+                .equalTo(miniPlayerView.snp.top)
+                .offset(-Layout.miniPlayerSpacing)
+                .constraint
+        }
+        tableBottomToMiniPlayerConstraint?.deactivate()
+    }
+
+    private func updateHeaderSize() {
+        let width = tableView.bounds.width
+        guard width > 0 else { return }
+
+        let artworkSize = min(280, width - 64)
+        let headerHeight = artworkSize + 208
+        guard
+            albumHeaderView.frame.width != width
+                || albumHeaderView.frame.height != headerHeight
+        else {
+            return
+        }
+
+        albumHeaderView.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: width,
+            height: headerHeight
+        )
+        tableView.tableHeaderView = albumHeaderView
     }
 
     private func bindPlayer() {
@@ -220,20 +194,28 @@ final class AlbumViewController: UIViewController {
 
     private func renderMiniPlayer(_ state: SongPlayerState) {
         miniPlayerView.configure(with: state)
+        updatePlayingTrack(state.track)
         guard !isMiniPlayerVisible else { return }
 
         isMiniPlayerVisible = true
         miniPlayerView.isHidden = false
-        tableView.contentInset.bottom = 92
-        tableView.verticalScrollIndicatorInsets.bottom = 92
+        tableBottomConstraint?.deactivate()
+        tableBottomToMiniPlayerConstraint?.activate()
 
         UIView.animate(
-            withDuration: 0.3,
+            withDuration: 0.32,
             delay: 0,
             options: [.curveEaseOut]
         ) {
             self.miniPlayerView.alpha = 1
             self.miniPlayerView.transform = .identity
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    private func updatePlayingTrack(_ track: Track) {
+        for case let cell as TrackCell in tableView.visibleCells {
+            cell.setPlaying(cell.trackFileName == track.fileName)
         }
     }
 
@@ -267,15 +249,60 @@ extension AlbumViewController: UITableViewDataSource {
             return UITableViewCell()
         }
 
-        cell.configure(with: track)
+        cell.configure(
+            with: track,
+            isPlaying: playerViewModel.state?.track.fileName == track.fileName
+        )
         return cell
     }
 }
 
 extension AlbumViewController: UITableViewDelegate {
+    func tableView(
+        _ tableView: UITableView,
+        viewForHeaderInSection section: Int
+    ) -> UIView? {
+        UIView()
+    }
+
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         playerViewModel.selectTrack(at: indexPath.row)
-        showPlayer()
+    }
+}
+
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass {
+        CAGradientLayer.self
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        configureGradient()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("GradientView is created programmatically")
+    }
+
+    private func configureGradient() {
+        guard let gradientLayer = layer as? CAGradientLayer else { return }
+        gradientLayer.colors = [
+            UIColor.black.withAlphaComponent(0.18).cgColor,
+            UIColor(
+                red: 0.055,
+                green: 0.064,
+                blue: 0.082,
+                alpha: 0.9
+            ).cgColor,
+            UIColor(
+                red: 0.055,
+                green: 0.064,
+                blue: 0.082,
+                alpha: 1
+            ).cgColor
+        ]
+        gradientLayer.locations = [0, 0.48, 1]
     }
 }
