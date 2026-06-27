@@ -175,14 +175,6 @@ final class AlbumViewController: UIViewController {
     }
 
     private func showPlayer(for index: Int) {
-        let storyboard = UIStoryboard(name: "Main", bundle: .main)
-        guard let songViewController = storyboard.instantiateViewController(
-            withIdentifier: "SongViewController"
-        ) as? SongViewController else {
-            assertionFailure("SongViewController is not configured in Main.storyboard")
-            return
-        }
-
         guard let songViewModel = viewModel.makeSongViewModel(
             selectedIndex: index,
             audioPlayerService: audioPlayerService
@@ -190,7 +182,7 @@ final class AlbumViewController: UIViewController {
             return
         }
 
-        songViewController.viewModel = songViewModel
+        let songViewController = SongViewController(viewModel: songViewModel)
         songViewController.modalPresentationStyle = .pageSheet
         present(songViewController, animated: true)
     }
